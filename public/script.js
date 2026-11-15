@@ -1,31 +1,89 @@
 (() => {
   "use strict";
 
-  const LOCAL_ZIP = "downloads/RingForgeStudio.zip";
+  const MANIFEST = "downloads/manifest.json";
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* ---------- Download button: show size, or "coming soon" if the zip isn't up yet ---------- */
+  /* ---------- Download ----------
+     The zip is bigger than Cloudflare's 25 MiB per-file limit, so it's stored in
+     pieces under downloads/parts/. Clicking Download fetches the pieces, joins
+     them in the browser and saves the result as one RingForgeStudio.zip. */
   (async () => {
     const note = document.getElementById("downloadNote");
     const buttons = ["downloadBtn", "downloadBtn2"].map((id) => document.getElementById(id));
-    let ok = false, size = 0;
+    const labels = buttons.map((a) => a.lastChild.textContent);
+    const setLabel = (text) => buttons.forEach((a) => { a.lastChild.textContent = " " + text; });
+    const resetLabels = () => buttons.forEach((a, i) => { a.lastChild.textContent = labels[i]; });
+    const mb = (n) => (n / 1e6).toFixed(1) + " MB";
+
+    let manifest = null;
     try {
-      const res = await fetch(LOCAL_ZIP, { method: "HEAD", cache: "no-store" });
-      const type = res.headers.get("content-type") || "";
-      ok = res.ok && !type.includes("text/html");
-      size = Number(res.headers.get("content-length") || 0);
-    } catch { ok = false; }
-    if (ok) {
-      if (size) note.textContent = `Free download · RingForgeStudio.zip · ${(size / 1048576).toFixed(1)} MB`;
+      const res = await fetch(MANIFEST, { cache: "no-store" });
+      if (res.ok) manifest = await res.json();
+    } catch { manifest = null; }
+
+    if (!manifest || !Array.isArray(manifest.parts) || !manifest.parts.length) {
+      note.textContent = "Download coming soon";
+      for (const a of buttons) {
+        a.removeAttribute("href");
+        a.classList.add("disabled");
+        a.setAttribute("aria-disabled", "true");
+      }
+      setLabel("Coming soon");
       return;
     }
-    note.textContent = "Download coming soon";
+
+    note.textContent = `Free download · ${manifest.name} · ${mb(manifest.size)} · Windows`;
+    let busy = false, savedUrl = null;
+
+    function save(url) {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = manifest.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    async function download() {
+      if (busy) return;
+      if (savedUrl) { save(savedUrl); return; }   // already built this visit
+      busy = true;
+      buttons.forEach((a) => a.classList.add("loading"));
+      const chunks = [];
+      let got = 0;
+      try {
+        for (const part of manifest.parts) {
+          const res = await fetch(part.path);
+          if (!res.ok) throw new Error(`HTTP ${res.status} for ${part.path}`);
+          const reader = res.body.getReader();
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+            got += value.length;
+            setLabel(`Downloading… ${Math.floor((got / manifest.size) * 100)}%`);
+          }
+        }
+        if (got !== manifest.size) throw new Error(`size mismatch (${got} vs ${manifest.size})`);
+        const blob = new Blob(chunks, { type: "application/zip" });
+        savedUrl = URL.createObjectURL(blob);
+        save(savedUrl);
+        setLabel("Downloaded ✓");
+        ringSound();
+        setTimeout(resetLabels, 4000);
+      } catch (err) {
+        console.error(err);
+        setLabel("Download failed — try again");
+        setTimeout(resetLabels, 4000);
+      } finally {
+        busy = false;
+        buttons.forEach((a) => a.classList.remove("loading"));
+      }
+    }
+
     for (const a of buttons) {
-      a.removeAttribute("href");
-      a.removeAttribute("download");
-      a.classList.add("disabled");
-      a.setAttribute("aria-disabled", "true");
-      a.lastChild.textContent = " Coming soon";
+      a.addEventListener("click", (e) => { e.preventDefault(); download(); });
     }
   })();
 
