@@ -1,0 +1,23 @@
+{
+  "name": "RingForgeStudio.zip",
+  "size": 77262794,
+  "sha256": "7cea89123ae12d2dadfc401b5ee8ced67e15a8d3352ccf6d22ab95403a2b0109",
+  "parts": [
+    {
+      "path": "downloads/parts/RingForgeStudio.zip.part00",
+      "size": 20971520
+    },
+    {
+      "path": "downloads/parts/RingForgeStudio.zip.part01",
+      "size": 20971520
+    },
+    {
+      "path": "downloads/parts/RingForgeStudio.zip.part02",
+      "size": 20971520
+    },
+    {
+      "path": "downloads/parts/RingForgeStudio.zip.part03",
+      "size": 14348234
+    }
+  ]
+}

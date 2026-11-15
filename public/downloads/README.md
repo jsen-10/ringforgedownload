@@ -1,9 +1,18 @@
 # Downloads
 
-Put the release zip here as **`RingForgeStudio.zip`**.
+`RingForgeStudio.zip` is bigger than Cloudflare's 25 MiB per-file limit,
+so it's stored in 20 MiB pieces in `parts/`. `manifest.json` lists the
+pieces, the total size and the SHA-256 of the full zip.
 
-The site's download buttons serve this file directly. Until it's here,
-they show "Coming soon".
+When someone clicks Download, `script.js` fetches the pieces, joins
+them in the browser and saves a single `RingForgeStudio.zip`.
 
-Cloudflare won't serve a single file over 25 MiB (GitHub's limit is 100 MB). For a bigger zip, attach it to a
-GitHub Release and point the buttons in `index.html` / `script.js` at it.
+## Updating the release
+
+```bash
+rm -f parts/*
+split -b 20M -d -a 2 /path/to/RingForgeStudio.zip parts/RingForgeStudio.zip.part
+```
+
+Then update `manifest.json`: the part paths and sizes, plus `size`
+and `sha256` for the whole zip.
