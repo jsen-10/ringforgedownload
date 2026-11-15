@@ -1,27 +1,32 @@
 (() => {
   "use strict";
 
-  const SMASH_URL = "https://fromsmash.com/ringforgestudiodownload";
   const LOCAL_ZIP = "downloads/RingForgeStudio.zip";
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* ---------- Download button: prefer the local zip if it's on the site ---------- */
+  /* ---------- Download button: show size, or "coming soon" if the zip isn't up yet ---------- */
   (async () => {
+    const note = document.getElementById("downloadNote");
+    const buttons = ["downloadBtn", "downloadBtn2"].map((id) => document.getElementById(id));
+    let ok = false, size = 0;
     try {
       const res = await fetch(LOCAL_ZIP, { method: "HEAD", cache: "no-store" });
       const type = res.headers.get("content-type") || "";
-      if (!res.ok || type.includes("text/html")) return;
-      const size = Number(res.headers.get("content-length") || 0);
-      for (const id of ["downloadBtn", "downloadBtn2"]) {
-        const a = document.getElementById(id);
-        a.href = LOCAL_ZIP;
-        a.setAttribute("download", "RingForgeStudio.zip");
-        a.removeAttribute("target");
-      }
-      const mb = size ? ` · ${(size / 1048576).toFixed(1)} MB` : "";
-      document.getElementById("downloadNote").innerHTML =
-        `Free download · RingForgeStudio.zip${mb} · <a href="${SMASH_URL}" target="_blank" rel="noopener">mirror on Smash</a>`;
-    } catch { /* stay on the Smash link */ }
+      ok = res.ok && !type.includes("text/html");
+      size = Number(res.headers.get("content-length") || 0);
+    } catch { ok = false; }
+    if (ok) {
+      if (size) note.textContent = `Free download · RingForgeStudio.zip · ${(size / 1048576).toFixed(1)} MB`;
+      return;
+    }
+    note.textContent = "Download coming soon";
+    for (const a of buttons) {
+      a.removeAttribute("href");
+      a.removeAttribute("download");
+      a.classList.add("disabled");
+      a.setAttribute("aria-disabled", "true");
+      a.lastChild.textContent = " Coming soon";
+    }
   })();
 
   /* ---------- Sound (tiny WebAudio synth, no files) ---------- */
