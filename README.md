@@ -4,23 +4,25 @@ Download page for **RingForge Studio**, a fan-made Sonic ROM editor.
 
 ## Site
 
-Plain static HTML/CSS/JS, no build step:
+Plain static HTML/CSS/JS, no build step. Everything served lives in `public/`:
 
-- `index.html` — the page
-- `style.css` — styles
-- `script.js` — starfield, collectible rings, palette playground, easter eggs
-- `downloads/RingForgeStudio.zip` — the release (see `downloads/README.md`)
+- `public/index.html` — the page
+- `public/style.css` — styles
+- `public/script.js` — starfield, collectible rings, palette playground, easter eggs
+- `public/downloads/RingForgeStudio.zip` — the release (see `public/downloads/README.md`)
 
-### Publish with GitHub Pages
+### Deploy (Cloudflare Workers)
 
-1. Merge into `main`.
-2. Repo **Settings → Pages → Build and deployment**: Source **Deploy from a branch**, branch **main**, folder **/ (root)**.
-3. The site goes live at `https://<your-username>.github.io/ringforgedownload/`.
+`wrangler.jsonc` serves `public/` as static assets and includes the
+`previews` block that `npx wrangler preview` needs. Cloudflare Workers
+Builds picks it up automatically on push.
+
+Cloudflare rejects any single file over 25 MiB, so the zip must be under that.
 
 ### Preview locally
 
 ```bash
-python3 -m http.server 8000
+python3 -m http.server 8000 --directory public
 ```
 
 Then open http://localhost:8000.
